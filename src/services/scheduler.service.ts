@@ -11,7 +11,7 @@ export class SchedulerService {
     ) {}
 
     start(): void {
-        cron.schedule("* * * * *", async () => {
+        cron.schedule("0 * * * *", async () => {
             console.log("Fetching WB tariffs...");
             try {
                 const tariffs = await this.wbApiService.getTariffs();
@@ -22,7 +22,7 @@ export class SchedulerService {
             }
         });
 
-        cron.schedule("* * * * *", async () => {
+        cron.schedule("0 */6 * * *", async () => {
             console.log("Updating Google Sheets...");
             try {
                 const tariffs = await this.tariffService.getLatestTariffs();
