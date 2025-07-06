@@ -74,3 +74,35 @@ export const StoredTariffSchema = z.object({
 });
 
 export type StoredTariff = z.infer<typeof StoredTariffSchema>;
+
+export const GoogleSheetsValueRangeSchema = z.object({
+    range: z.string(),
+    majorDimension: z.enum(["ROWS", "COLUMNS"]),
+    values: z.array(z.array(z.any())).optional(),
+});
+
+export type GoogleSheetsValueRange = z.infer<typeof GoogleSheetsValueRangeSchema>;
+
+export type GoogleSheetsResponse = GoogleSheetsValueRange;
+
+export const GoogleSheetsUpdateResponseSchema = z.object({
+    spreadsheetId: z.string(),
+    updatedRange: z.string(),
+    updatedRows: z.number(),
+    updatedColumns: z.number(),
+    updatedCells: z.number(),
+});
+
+export type GoogleSheetsUpdateResponse = z.infer<typeof GoogleSheetsUpdateResponseSchema>;
+
+export const GoogleSheetsErrorSchema = z.object({
+    code: z.number(),
+    message: z.string(),
+    status: z.string(),
+});
+
+export const GoogleSheetsErrorResponseSchema = z.object({
+    error: GoogleSheetsErrorSchema,
+});
+
+export type GoogleSheetsErrorResponse = z.infer<typeof GoogleSheetsErrorResponseSchema>;

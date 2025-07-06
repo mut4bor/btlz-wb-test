@@ -126,5 +126,3 @@ export class TariffService {
         return await knex(this.tableName).where("date", "<", cutoffDate.toISOString().split("T")[0]).del();
     }
 }
-
-export const tariffService = new TariffService();

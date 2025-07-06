@@ -1,40 +1,53 @@
-import { migrate, seed } from "#postgres/knex.js";
-import { tariffService } from "#services/tariff.service.js";
-import { WBApiService } from "#services/wb-api.service.js";
+import _knex from "knex";
+import { WBApiService } from "./services/wb-api.service.js";
+import { TariffService } from "./services/tariff.service.js";
+import { GoogleSheetsService } from "./services/google-sheets.service.js";
+import { SchedulerService } from "./services/scheduler.service.js";
+import knex from "#postgres/knex.js";
 import env from "#config/env/env.js";
 
-await migrate.latest();
-await seed.run();
+class App {
+    private db: _knex.Knex;
+    private wbApiService: WBApiService;
+    private tariffService: TariffService;
+    private googleSheetsService: GoogleSheetsService;
+    private schedulerService: SchedulerService;
 
-// console.log("All migrations and seeds have been run");
+    constructor() {
+        this.db = knex;
 
-// Получение всех тарифов
-const allTariffs = await tariffService.getAllTariffs();
+        this.wbApiService = new WBApiService(process.env.WB_API_TOKEN || "");
 
-// console.log("allTariffs", allTariffs);
+        this.tariffService = new TariffService();
 
-// Получение тарифов по дате
-const todayTariffs = await tariffService.getTariffsByDate(new Date());
+        this.googleSheetsService = new GoogleSheetsService(
+            env.GOOGLE_SHEETS_ACCOUNT_EMAIL || "",
+            env.GOOGLE_SHEETS_PRIVATE_KEY || "",
+            (env.GOOGLE_SHEETS_SPREADSHEET_IDS || "").split(","),
+        );
 
-// console.log("todayTariffs", todayTariffs);
+        this.schedulerService = new SchedulerService(this.wbApiService, this.tariffService, this.googleSheetsService);
+    }
 
-// Получение последних актуальных тарифов
-const latestTariffs = await tariffService.getLatestTariffs();
+    async start(): Promise<void> {
+        try {
+            await this.db.migrate.latest();
+            console.log("Database migrations completed");
 
-// console.log("latestTariffs", latestTariffs);
+            this.schedulerService.start();
 
-const wbApiService = new WBApiService(env.WB_API_TOKEN);
+            console.log("Initial data fetch...");
+            const tariffs = await this.wbApiService.getTariffs();
+            await this.tariffService.upsertTariffs(tariffs);
+            console.log("Initial data saved");
 
-const wbTariffData = await wbApiService.getTariffs();
+            console.log("Application started successfully");
+        } catch (error) {
+            console.error("Error starting application:", error);
+            process.exit(1);
+        }
+    }
+}
 
-console.log("wbTariffData", wbTariffData);
-
-// Сохранение тарифов из API WB
-await tariffService.upsertTariffs(wbTariffData);
-
-// console.log("Tariffs saved successfully");
-
-// Получение статистики
-const stats = await tariffService.getTariffsStats();
-
-// console.log("stats", stats);
+const app = new App();
+app.start();
